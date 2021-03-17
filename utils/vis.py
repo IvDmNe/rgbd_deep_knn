@@ -144,13 +144,14 @@ def get_rects(mask):
 def get_rotated_rois(rgb_im, depth_im, mask):
     rects = get_rects(mask)
 
-    warped = []
+    warped_rgb = []
+    warped_depth = []
     for rect in rects:
-        warped_rgb = crop_rect(rgb_im, rect)
-        warped_depth = crop_rect(depth_im, rect)
-        warped.append((warped_rgb, warped_depth))
+        warped_rgb.append(crop_rect(rgb_im, rect))
+        warped_depth.append(crop_rect(depth_im, rect))
+        # warped.append((warped_rgb, warped_depth))
  
-    return warped
+    return warped_rgb, warped_depth
 
 
 def crop_rect(img, rect):

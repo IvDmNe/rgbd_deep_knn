@@ -3,14 +3,20 @@ import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 import torch
 from matplotlib import pyplot as plt
-
+from torch import nn
 from utils.vis import visualize_segmentation, get_rects, get_rotated_rois
+from utils.augment import convert_to_tensor
+from net.feature_extractor import feature_extractor
 
 
-
+import torchvision
 
 class classifier:
     def __init__(self, backbone, knnClassifier=None, save_dir=None):
+
+
+        self.extractor = feature_extractor(backbone)
+
 
         if knnClassifier:
             self.knnClassifier = knnClassifier
@@ -21,35 +27,24 @@ class classifier:
 
     def process_rgbd(self, rgb_im, depth_im, mask):
 
-        # rects = get_rects(mask)
-
-        # for rect in rects:
-        #     # x, y, w, h = rect
-        #     # cv.rectangle(rgb_im, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-        #     box = cv.boxPoints(rect)
-        #     box = np.int0(box) #turn into ints
-        #     cv.drawContours(rgb_im,[box],0,(0,0,255),3)
-            
-
-        # plt.imshow(visualize_segmentation(rgb_im, mask, return_rgb=True))
-        # plt.show()
 
         # get rotated rois
 
-        rois = get_rotated_rois(rgb_im, depth_im, mask)
+        rgb_rois, depth_rois = get_rotated_rois(rgb_im, depth_im, mask)
 
-        for roi in rois:
-            plt.imshow(roi[0])
-            plt.show()
-            plt.imshow(roi[1])
-            plt.show()
-
+   
         # feed to feature extractor each roi
 
 
 
-        print(depth.shape)
+        rgb_rois = convert_to_tensor(rgb_rois, shape=(224, 224))
+        depth_rois = convert_to_tensor(depth_rois, shape=(224, 224))
+
+        deep_rgb_features = self.extractor(rgb_rois)
+        deep_depth_features = self.extractor(depth_rois)
+
+        deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
+        print(deep_features.shape)
         
 
 
@@ -60,11 +55,11 @@ if __name__ == '__main__':
     depth = cv.cvtColor(depth_im, cv.COLOR_BGR2GRAY)
     mask = cv.imread('out_images/mask.png')
     mask = cv.cvtColor(mask, cv.COLOR_BGR2GRAY)
-    plt.imshow(depth_im)
-    plt.show()
+    # plt.imshow(depth_im)
+    # plt.show()
 
 
-    backbone = torch.hub.load('pytorch/vision:v0.9.0', 'squeezenet1_1', pretrained=True)
+    backbone = torchvision.models.squeezenet1_1(pretrained=True)
     backbone.eval()
 
     cl = classifier(backbone)
