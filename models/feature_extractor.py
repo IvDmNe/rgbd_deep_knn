@@ -9,8 +9,10 @@ class feature_extractor(nn.Module):
 
 
     def forward(self, x):
-        feats = self.backbone(x)        
+        feats = self.backbone(x)  
+        # print(feats.shape)      
         output = F.max_pool2d(feats, kernel_size=feats.size()[2:])
+        # print(output.shape)
         output = output.squeeze()
         # print(output.shape)
 

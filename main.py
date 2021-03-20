@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 from torch import nn
 from utils.vis import visualize_segmentation, get_rects, get_rotated_rois
 from utils.augment import convert_to_tensor
-from net.feature_extractor import feature_extractor
-
+from models.feature_extractor import feature_extractor
+import os
 
 import torchvision
 
@@ -25,17 +25,51 @@ class classifier:
 
         self.save_dir = save_dir
 
+        self.prev_rects = None
+
+        self.prev_ids = None
+
+        self.total_id = 0
+        self.save_dir = 'save_images'
+        os.makedirs(self.save_dir, exists_ok=True)
+
+    def save_rois(self, rgb_im, depth_im, mask, class_name):
+
+        rgb_rois, depth_rois, cntrs = get_rotated_rois(rgb, depth, mask)
+        if not rgb_rois:
+            print('no objects')
+            return        
+
+        drawing = rgb.copy()
+        cv.drawContours(drawing, cntrs, -1, (255, 0, 255), 2)  
+        center_cntr = find_nearest_to_center_cntr(cntrs, rgb.shape)
+
+        center_index = cntrs.index(center_cntr)
+        center_roi = rgb_rois[center_index]
+        center_roi = depth_rois[center_index]
+
+        cv.imwrite(f'{self.save_dir}/{class_name}_rgb.png')
+        cv.imwrite(f'{self.save_dir}/{class_name}_depth.png')
+        return
+    
+    def train(self, class_name):
+        
+
+
+
     def process_rgbd(self, rgb_im, depth_im, mask):
 
 
         # get rotated rois
 
-        rgb_rois, depth_rois = get_rotated_rois(rgb_im, depth_im, mask)
+        rgb_rois, depth_rois, rects = get_rotated_rois(rgb_im, depth_im, mask)
+
+        #track rois
+
+        ids = self.assign_id(rects)
 
    
         # feed to feature extractor each roi
-
-
 
         rgb_rois = convert_to_tensor(rgb_rois, shape=(224, 224))
         depth_rois = convert_to_tensor(depth_rois, shape=(224, 224))
@@ -44,7 +78,10 @@ class classifier:
         deep_depth_features = self.extractor(depth_rois)
 
         deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
-        print(deep_features.shape)
+
+        # perform classification
+
+
         
 
 

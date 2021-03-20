@@ -111,38 +111,97 @@ def visualize_segmentation(im, masks, nc=None, return_rgb=False, save_dir=None):
 
 
 def get_rects(mask):
+    # print(np.unique(mask))
+    # plt.imshow(mask)
+    # plt.show()
     # Detect edges using Canny
-    canny_output = cv.Canny(mask, 0, 1)
-    # Find contours
-    contours, hierarchy = cv.findContours(canny_output, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours = []
+    for cl in np.unique(mask)[1:]:
+        
+        # one_cl_mask = mask[np.where(mask == cl)]
+        # mask = cv2.inRange(mask, cl, cl)
+        one_cl_mask = mask.copy()
+        one_cl_mask[mask != cl] = 0
+        one_cl_mask[mask == cl] = 255
+        # print('class:',cl)
+        # print(np.unique(one_cl_mask))
 
-    for cntr in contours[::-1]:
-        if cv.contourArea(cntr) < 100:
-            contours.remove(cntr)
-    # print(len(contours))
-    rects = []
-    for cntr in contours:
-        area = cv.contourArea(cntr)
+        kernel = (12, 12)
+        one_cl_mask = cv.erode(one_cl_mask, kernel)
+        one_cl_mask = cv.dilate(one_cl_mask, kernel)
 
-        if area < 100:
-            continue
-        # rotated bbox
-        rect = cv.minAreaRect(cntr) # basically you can feed this rect into your classifier
-        (x,y),(w,h), a = rect # a - angle
+        canny_output1= cv.Canny(one_cl_mask, 0, 1)
+
+        contours1, _ = cv.findContours(canny_output1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+        cv.drawContours(one_cl_mask, contours1, -1, 128, 2)
+
+        contours += contours1
+
+        # plt.imshow(one_cl_mask)
+        # plt.show()
+
+    # canny_output = cv.Canny(mask, 0, 1)
+    # # Find contours
+    # contours, hierarchy = cv.findContours(canny_output, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    # print(hierarchy)
+    # print()
+    # print(contours)
+
+    outer_cntrs = []
+
+    # cv.drawContours(im, contours, -1, (255, 0, 0), 2)
+    # plt.imshow(im)
+    # plt.show()
+    # print(type(contours))
+    # print('contours:', len(contours))
+    big_cntrs = []
+    small_cntrs = []
+    for idx, cntr in enumerate(contours):
+
+        rect = cv.minAreaRect(cntr)
+
+        area = rect[1][0]*rect[1][1]
+
+        # print(area, cv.contourArea(cntr))
+
+        c = mask.copy()
+        cv.drawContours(c, [cntr], -1, 10, 2)
+
+        box = cv.boxPoints(rect)
+        box = np.int0(box)
+        cv.drawContours(c,[box],0,7,2)
+
+        # plt.imshow(c)
+        # plt.show()
+
         
 
-        # axis-aligned bbox
-        # rect = cv.boundingRect(cntr) # basically you can feed this rect into your classifier
-        # rect = np.uint0(rect)
+        # if cv.contourArea(cntr) > 50: #and (hierarchy[0][idx][3] != -1):
+        if area > 1000: #and (hierarchy[0][idx][3] != -1):
+            
+            # print(contours[contours==cntr])
+            big_cntrs.append(cntr)
+            # contours.remove(cntr)
+            
+        else:
+            small_cntrs.append(cntr)
+            # outer_cntrs.append(cntr)
 
+    contours = big_cntrs
+    # print('big contnours', len(big_cntrs))
+    rects = []
 
+    for cntr in contours:
+        rect = cv.minAreaRect(cntr) # basically you can feed this rect into your classifier
+        (x,y),(w,h), a = rect # a - angle
         rects.append(rect)
 
-    return rects
+    return rects, contours, small_cntrs
 
 
 def get_rotated_rois(rgb_im, depth_im, mask):
-    rects = get_rects(mask)
+    rects, cntrs,_ = get_rects(mask)
 
     warped_rgb = []
     warped_depth = []
@@ -151,7 +210,7 @@ def get_rotated_rois(rgb_im, depth_im, mask):
         warped_depth.append(crop_rect(depth_im, rect))
         # warped.append((warped_rgb, warped_depth))
  
-    return warped_rgb, warped_depth
+    return warped_rgb, warped_depth, cntrs
 
 
 def crop_rect(img, rect):
@@ -179,3 +238,4 @@ def crop_rect(img, rect):
     return warped
 
 
+# def find_nearest_prev_rois(prev_mask, mask):
