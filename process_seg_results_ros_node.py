@@ -43,7 +43,6 @@ class ImageListener:
 
     def __init__(self):
 
-  
 
         self.cv_bridge = CvBridge()
 

@@ -120,6 +120,12 @@ class classifier:
             self.was_trained = True
 
         if self.mode == 'inference':
+
+            # return if there was no training before
+            if self.knn.x_data is None:
+                print('no trained classes, skip inference')
+                return
+
             if self.was_trained:
                 self.save_deep_features()
                 self.was_trained = False
