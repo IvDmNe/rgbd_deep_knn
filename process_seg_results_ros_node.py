@@ -26,12 +26,22 @@ import networks
 import rospy
 import copy
 
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, String
+
 from cv_bridge import CvBridge, CvBridgeError
 from fcn.config import cfg, cfg_from_file, get_output_dir
 from fcn.test_dataset import test_sample
 from utils.mask import visualize_segmentation
+
+from models.knn_classifier import knn_torch
+from models.feature_extractor import feature_extractor
+from utils.vis import get_rotated_rois
+from models.classifier import classifier
+
+
 lock = threading.Lock()
+
+
 
 
 def compute_xyz(depth_img, fx, fy, px, py, height, width):
@@ -45,10 +55,10 @@ def compute_xyz(depth_img, fx, fy, px, py, height, width):
 
 class ImageListener:
 
-    def __init__(self, network, network_crop):
+    def __init__(self):
 
-        self.network = network
-        self.network_crop = network_crop
+  
+
         self.cv_bridge = CvBridge()
 
         self.im = None
@@ -56,13 +66,19 @@ class ImageListener:
         self.rgb_frame_id = None
         self.rgb_frame_stamp = None
 
+
+        self.classifier = classifier()
+
+        self.save_dir = 'save_images'
+        os.makedirs(self.save_dir, exists_ok=True)
+
         # initialize a node
-        rospy.init_node("seg_rgb")
-        self.label_pub = rospy.Publisher('seg_label', Image, queue_size=10)
-        self.label_refined_pub = rospy.Publisher('seg_label_refined', Image, queue_size=10)
-        self.image_pub = rospy.Publisher('seg_image', Image, queue_size=10)
-        self.image_refined_pub = rospy.Publisher('seg_image_refined', Image, queue_size=10)
-        self.feature_pub = rospy.Publisher('seg_feature', Image, queue_size=10)
+        rospy.init_node("classification")
+        self.label_pub = rospy.Publisher('rgb_with_labels', Image, queue_size=10)
+        # self.label_refined_pub = rospy.Publisher('seg_label_refined', Image, queue_size=10)
+        # self.image_pub = rospy.Publisher('seg_image', Image, queue_size=10)
+        # self.image_refined_pub = rospy.Publisher('seg_image_refined', Image, queue_size=10)
+        # self.feature_pub = rospy.Publisher('seg_feature', Image, queue_size=10)
 
 
         self.base_frame = 'measured/base_link'
@@ -86,7 +102,22 @@ class ImageListener:
         slop_seconds = 0.1
         ts = message_filters.ApproximateTimeSynchronizer([rgb_sub, depth_sub, mask_sub], queue_size, slop_seconds)
         ts.registerCallback(self.callback_rgbd)
+        rospy.Subscriber('/classification/commands', String, self.callback_working_mode)
 
+
+    def callback_working_mode(self, command):
+
+        if ' ' in command and (command[0] == 'train'):
+
+            self.mode = command[0]
+            self.train_cl = command[1]
+        elif command == 'inference':
+            self.mode = 'inference'
+
+        print('|||||||||||||||||||||||||||||||')
+        print('mode changed to', command)
+        print('|||||||||||||||||||||||||||||||')
+        
 
     def callback_rgbd(self, rgb, depth, mask):
 
@@ -94,7 +125,7 @@ class ImageListener:
             depth_cv = self.cv_bridge.imgmsg_to_cv2(depth)
         elif depth.encoding == '16UC1':
             depth_cv = self.cv_bridge.imgmsg_to_cv2(depth).copy().astype(np.float32)
-            depth_cv /= 1000.0
+            # depth_cv /= 1000.0
 
             mask_cv = self.cv_bridge.imgmsg_to_cv2(mask)
         else:
@@ -133,37 +164,39 @@ class ImageListener:
         print('===========================================')
 
 
-        rgb_rois, depth_rois, rects = get_rotated_rois(im_color, depth_img, mask_img)
+        # rgb_rois, depth_rois, rects = get_rotated_rois(im_color, depth_img, mask_img)
    
-        if self.mode == 'train':
+        if self.classifier.mode == 'train':
+
+            self.classifier.save_rois(im_color, depth_img, mask_img, self.train_cl)
+            self.classifier.was_trained = True
+    
+
+        elif self.classifier.mode == 'inference':
             
-            if not rgb_rois:
-                print('no objects')
-                return        
+            #  at the end of training get deep features from images and save them to file
+            if self.classifier.was_trained:
+                self.classifier.save_deep_features()
+                self.classifier.was_trained = False
 
-            center_cntr = find_nearest_to_center_cntr(cntrs, rgb.shape)
+            # feed to feature extractor each roi
+            rgb_rois, depth_rois, rects = get_rotated_rois(im_color, depth_img, mask_img)
+            rgb_rois = convert_to_tensor(rgb_rois, shape=(224, 224))
+            depth_rois = convert_to_tensor(depth_rois, shape=(224, 224))
 
-            center_index = cntrs.index(center_cntr)
-            center_roi = rgb_rois[center_index]
-            center_roi = depth_rois[center_index]
+            deep_rgb_features = self.classifier.extractor(rgb_rois)
+            deep_depth_features = self.classifier.extractor(depth_rois)
 
-            cv.imwrite(f'{self.save_dir}/{class_name}_rgb.png')
-            cv.imwrite(f'{self.save_dir}/{class_name}_depth.png')
+            deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
 
+            classes = self.classifier.knn.classify(deep_features)
 
-
-        # feed to feature extractor each roi
-
-        rgb_rois = convert_to_tensor(rgb_rois, shape=(224, 224))
-        depth_rois = convert_to_tensor(depth_rois, shape=(224, 224))
-
-        deep_rgb_features = self.extractor(rgb_rois)
-        deep_depth_features = self.extractor(depth_rois)
-
-        deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
+            print(classes)
+            
 
 
-        # upload deep features to knn database
+
+             
 
 
 

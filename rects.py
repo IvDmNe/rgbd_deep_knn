@@ -114,16 +114,7 @@ class useless:
             
 
             
-def find_nearest_to_center_cntr(cntrs, imsize):
-    im_center = np.array([imsize[1] // 2, imsize[0] // 2])
 
-    centers = get_centers(cntrs)
-    dist, nearest = find_nearest(centers, im_center)
-
-    if dist > 200:
-        return None
-
-    return cntrs[nearest]
             
 
         
