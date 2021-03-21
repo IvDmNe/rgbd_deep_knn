@@ -132,7 +132,7 @@ class classifier:
             if torch.cuda.is_available():
                 rgb_rois = rgb_rois.cuda()
                 depth_rois = depth_rois.cuda()
-                
+
             deep_rgb_features = self.extractor(rgb_rois)
             deep_depth_features = self.extractor(depth_rois)
 
@@ -152,6 +152,8 @@ class classifier:
 
             drawing = rgb_im.copy()
             cv.drawContours(drawing, cntrs, -1, (255, 0, 255), 2)
+
+            centers_of_objs = []
             for cntr, cl in zip(cntrs, classes):
 
                 # cv.drawContours(drawing, [cntr], -1, (255, 0, 0), 2)
@@ -159,16 +161,14 @@ class classifier:
                 M = cv.moments(cntr)
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
+                centers_of_objs.append((cX, cY))
                 cv.putText(drawing, cl, (cX - 10, cY - 10), cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
                 cv.circle(drawing, (cX, cY), 2, (255,0,0))
 
-           
+            return drawing, classes, centers_of_objs
             # plt.imshow(drawing)
             # plt.show()
 
-
-            # cv.circle(drawing, (rgb.shape[1] //2, rgb.shape[0] //2), 200, (0,255,0))
-            # cv.circle(drawing, (rgb.shape[1] //2, rgb.shape[0] //2), 2, (0,0,255))
 
             
 
