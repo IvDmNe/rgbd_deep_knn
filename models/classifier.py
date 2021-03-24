@@ -173,15 +173,19 @@ class classifier:
             # feed deep features to knn
             classes = self.knn.classify(deep_features)
 
-            # print(classes)
-
 
             drawing = rgb_im.copy()
-            cv.drawContours(drawing, cntrs, -1, (255, 0, 255), 2)
 
+
+            # cv.drawContours(drawing, cntrs, -1, (255, 0, 255), 2)
+            NUM_COLORS = len(set(self.knn.y_data))
+            cm = plt.get_cmap('gist_rainbow')
+            colors = [cm(1. * i/NUM_COLORS) for i in range(NUM_COLORS)]
             centers_of_objs = []
-            for cntr, cl in zip(cntrs, classes):
+            for (cntr, cl) in zip(cntrs, classes):
 
+                i = list(set(self.knn.y_data)).index(cl)
+                color = (colors[i][0] * 255, colors[i][1] * 255, colors[i][2] * 255)
 
                 M = cv.moments(cntr)
                 if M['m00'] == 0:
@@ -191,11 +195,11 @@ class classifier:
                 cY = int(M["m01"] / M["m00"])
                 
                 centers_of_objs.append((cX, cY))
-                cv.putText(drawing, cl, (cX - 10, cY - 10), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-                cv.circle(drawing, (cX, cY), 2, (255,0,0))
+                cv.drawContours(drawing, cntrs, -1, color, 2)
+                cv.putText(drawing, cl, (cX - 10, cY - 10), cv.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+                cv.circle(drawing, (cX, cY), 2, color)
 
             return drawing, classes, centers_of_objs
-
 
         else:
             print('unknown mode', self.mode, '!')

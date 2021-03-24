@@ -122,18 +122,20 @@ class ImageListener:
 
         # self.back_sub = cv2.bgsegm.createBackgroundSubtractorGSOC()
 
-        hsv_back = cv2.cvtColor(self.background, cv2.COLOR_BGR2HSV)
-        hsv_im_color = cv2.cvtColor(im_color, cv2.COLOR_BGR2HSV)
-
-        self.back_sub.apply(self.background)
-
-        kernel_size = 5
-        # self.background = im_color
         
+
+        self.back_sub.apply(self.background)        
         mask = self.back_sub.apply(im_color)
 
 
 
+        # Didn't work, too bad
+        # hsv_back = cv2.cvtColor(self.background, cv2.COLOR_BGR2HSV)
+        # hsv_im_color = cv2.cvtColor(im_color, cv2.COLOR_BGR2HSV)
+        # self.back_sub.apply(hsv_back)
+        # mask = self.back_sub.apply(hsv_im_color)
+
+        kernel_size = 7
         mask = cv2.erode(mask, (kernel_size, kernel_size))
         mask = cv2.dilate(mask, (kernel_size, kernel_size))
         # mask = im_color

@@ -152,7 +152,7 @@ class ImageListener:
 
 
     def run_proc(self):
-
+        start = time.time()
         with lock:
             if self.im is None or self.depth is None or self.mask is None:
               return
@@ -171,14 +171,15 @@ class ImageListener:
         
 
         if self.classifier.mode == 'inference':
-            if self.classifier.knn.y_data:
-                print(set(self.classifier.knn.y_data))
+            # if self.classifier.knn.y_data:
+                # print(set(self.classifier.knn.y_data))
     
             proc_return = self.classifier.process_rgbd(im_color, depth_img, mask_img)
             if proc_return:
                 im_with_labels, labels, centers_of_objs = proc_return
 
-                label = im_with_labels                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+                label = im_with_labels
+                print(labels)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
             else:
                 print('no objs found')
                 label = im_color   
@@ -192,6 +193,10 @@ class ImageListener:
         label_msg.header.frame_id = rgb_frame_id
         label_msg.encoding = 'bgr8'
         self.label_pub.publish(label_msg)
+        end = time.time()
+        print(end - start)
+        print()
+
 
 
     def run_proc_train(self):
