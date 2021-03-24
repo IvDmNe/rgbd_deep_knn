@@ -6,7 +6,7 @@ rgbd_deep_knn
 4.opencv\
 5.Realsense plugin for ROS
 ## Run
-In different terminals:
+In different terminals:\
 roslaunch realsense2_camera rs_aligned_depth.launch tf_prefix:=measured/camera\
 python back_subs.py\
 python process_seg_results_ros_node.py\
