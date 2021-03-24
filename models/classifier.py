@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-from sklearn.neighbors import KNeighborsClassifier
+# from sklearn.neighbors import KNeighborsClassifier
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
@@ -12,6 +12,8 @@ from models.knn_classifier import knn_torch
 from utils.utils import *
 import torchvision
 import time
+from tqdm import tqdm
+
 
 class classifier:
     def __init__(self, backbone=None, knnClassifier=None, save_dir=None):
@@ -46,26 +48,33 @@ class classifier:
 
     def save_deep_features(self):
 
-        files = os.listdir(self.save_dir)
-
+        files = []
+        for root, dirs, fs in os.walk(self.save_dir + '/' + self.train_cl):
+            if fs:
+                for f in fs:
+                    files.append(root + '/' + f)
         rgb_files = []
         depth_files = []
         for f in files:
             if 'rgb' in f:
-                rgb_files.append(self.save_dir + '/' + f)
+                rgb_files.append(f)
             elif 'depth' in f:
-                depth_files.append(self.save_dir + '/' + f)
+                depth_files.append(f)
 
         all_deep_features = []
         cl_names = []
-        for rgb_f, depth_f in zip(rgb_files, depth_files):
+        print(files)
+
+        if len(files) == 0:
+            print('no files found')
+            return
+        for rgb_f, depth_f in tqdm(zip(rgb_files, depth_files), total=len(rgb_files)):
 
             rgb = cv.imread(rgb_f)
-            class_name = rgb_f.split('/')[-1].split('_')[0]
+            class_name = rgb_f.split('/')[-2]
             cl_names.append(class_name)
             depth_im = cv.imread(depth_f)
             depth = cv.cvtColor(depth_im, cv.COLOR_BGR2GRAY)
-
             rgb_rois = convert_to_tensor([rgb], shape=(224, 224))
 
             depth_rois = convert_to_tensor([depth], shape=(224, 224))
@@ -77,11 +86,11 @@ class classifier:
             deep_rgb_features = self.extractor(rgb_rois)
             deep_depth_features = self.extractor(depth_rois)
 
-            # print(deep_rgb_features.shape)
-            # print(deep_depth_features.shape)
-            deep_features = torch.cat([deep_rgb_features, deep_depth_features])
+ 
+            # deep_features = torch.cat([deep_rgb_features, deep_depth_features])
+            deep_features = deep_rgb_features
             all_deep_features.append(deep_features)
-
+        
         all_deep_features = torch.stack(all_deep_features)
         self.knn.add_points(all_deep_features, cl_names)
 
@@ -103,12 +112,17 @@ class classifier:
         center_depth_roi = depth_rois[center_index]
 
         timestamp = time.time()
+        print('')
+        os.makedirs(f'{self.save_dir}/{class_name}', exist_ok=True)
+        rgb_file = f'{self.save_dir}/{class_name}/rgb_{timestamp}.png'
+        depth_file = f'{self.save_dir}/{class_name}/depth_{timestamp}.png'
+        cv.imwrite(rgb_file, center_rgb_roi)
+        cv.imwrite(depth_file, center_depth_roi)
 
-        cv.imwrite(f'{self.save_dir}/{class_name}_rgb_{timestamp}.png', center_rgb_roi)
-        cv.imwrite(f'{self.save_dir}/{class_name}_depth_{timestamp}.png', center_depth_roi)
+        print(rgb_file)
+        print(depth_file)
         return
     
-    # def train(self, class_name):
         
 
 
@@ -117,21 +131,26 @@ class classifier:
 
         if self.mode == 'train':
             self.save_rois(rgb_im, depth_im, mask, self.train_cl)
-            self.was_trained = True
 
-        if self.mode == 'inference':
-
-            # return if there was no training before
-            if self.knn.x_data is None:
-                print('no trained classes, skip inference')
-                return
+        elif self.mode == 'inference':
 
             if self.was_trained:
+                print('start saving deep features')
                 self.save_deep_features()
                 self.was_trained = False
+                print('deep features saved')
+            
+            # return if there was no training before
+            if self.knn.x_data is None:
+                # print('no trained data')
+                return
 
             # feed to feature extractor each roi
             rgb_rois, depth_rois, cntrs = get_rotated_rois(rgb_im, depth_im, mask)
+
+            if not rgb_rois:
+                return
+            # print('f')
             rgb_rois = convert_to_tensor(rgb_rois, shape=(224, 224))
             depth_rois = convert_to_tensor(depth_rois, shape=(224, 224))
 
@@ -147,13 +166,14 @@ class classifier:
                 deep_rgb_features = deep_rgb_features.unsqueeze(0)
                 deep_depth_features = deep_depth_features.unsqueeze(0)
 
-            deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
+            # deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
+            deep_features = deep_rgb_features
 
 
             # feed deep features to knn
             classes = self.knn.classify(deep_features)
 
-            print(classes)
+            # print(classes)
 
 
             drawing = rgb_im.copy()
@@ -162,19 +182,23 @@ class classifier:
             centers_of_objs = []
             for cntr, cl in zip(cntrs, classes):
 
-                # cv.drawContours(drawing, [cntr], -1, (255, 0, 0), 2)
 
                 M = cv.moments(cntr)
+                if M['m00'] == 0:
+                    print('division by zero')
+                    continue
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
+                
                 centers_of_objs.append((cX, cY))
-                cv.putText(drawing, cl, (cX - 10, cY - 10), cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+                cv.putText(drawing, cl, (cX - 10, cY - 10), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                 cv.circle(drawing, (cX, cY), 2, (255,0,0))
 
             return drawing, classes, centers_of_objs
-            # plt.imshow(drawing)
-            # plt.show()
 
+
+        else:
+            print('unknown mode', self.mode, '!')
 
             
 

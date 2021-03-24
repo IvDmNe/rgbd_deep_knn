@@ -23,6 +23,8 @@ class knn_torch:
             self.x_data = torch.cat([self.x_data, x])
             self.y_data = self.y_data + y
 
+        # print(type(self.x_data))
+        # print(type(self.y_data))
         torch.save({'x': self.x_data,
                     'y': self.y_data}, self.save_file)
 
@@ -30,6 +32,7 @@ class knn_torch:
         
         if len(x.shape) == 1:
             dist = torch.norm(self.x_data - x, dim=1, p=None)
+
             knn = dist.topk(1, largest=False)
 
             nearest_idx = knn.indices[0]
@@ -40,12 +43,14 @@ class knn_torch:
             clss = []
             for x_el in x:
 
-                # print(self.x_data.shape)
-                # print(x_el.shape)
-                # exit()
                 dist = torch.norm(self.x_data - x_el, dim=1, p=None)
                 knn = dist.topk(1, largest=False)
                 nearest_idx = knn.indices[0]
+
+                # for d, gt in zip(dist, self.y_data):
+                #     print(d.data, gt)
+                
+                # print(knn[0].data, nearest_idx)
 
                 cl = self.y_data[nearest_idx]
                 clss.append(cl)

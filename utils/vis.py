@@ -7,8 +7,6 @@ from matplotlib import pyplot as plt
 
 def visualize_segmentation(im, masks, nc=None, return_rgb=False, save_dir=None):
 
-
-
     """ Visualize segmentations nicely. Based on code from:
         https://github.com/roytseng-tw/Detectron.pytorch/blob/master/lib/utils/vis.py
 
@@ -115,35 +113,36 @@ def get_rects(mask):
     # plt.imshow(mask)
     # plt.show()
     # Detect edges using Canny
-    contours = []
-    for cl in np.unique(mask)[1:]:
+    # contours = []
+    # for cl in np.unique(mask)[1:]:
         
-        # one_cl_mask = mask[np.where(mask == cl)]
-        # mask = cv2.inRange(mask, cl, cl)
-        one_cl_mask = mask.copy()
-        one_cl_mask[mask != cl] = 0
-        one_cl_mask[mask == cl] = 255
-        # print('class:',cl)
-        # print(np.unique(one_cl_mask))
+    #     # one_cl_mask = mask[np.where(mask == cl)]
+    #     # mask = cv2.inRange(mask, cl, cl)
+    #     one_cl_mask = mask.copy()
+    #     one_cl_mask[mask != cl] = 0
+    #     one_cl_mask[mask == cl] = 255
+    #     # print('class:',cl)
+    #     # print(np.unique(one_cl_mask))
 
-        kernel = (12, 12)
-        one_cl_mask = cv.erode(one_cl_mask, kernel)
-        one_cl_mask = cv.dilate(one_cl_mask, kernel)
+    #     kernel = (12, 12)
+    #     one_cl_mask = cv.erode(one_cl_mask, kernel)
+    #     one_cl_mask = cv.dilate(one_cl_mask, kernel)
 
-        canny_output1= cv.Canny(one_cl_mask, 0, 1)
+    #     canny_output1= cv.Canny(one_cl_mask, 0, 1)
 
-        contours1, _ = cv.findContours(canny_output1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    #     contours1, _ = cv.findContours(canny_output1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-        cv.drawContours(one_cl_mask, contours1, -1, 128, 2)
+    #     cv.drawContours(one_cl_mask, contours1, -1, 128, 2)
 
-        contours += contours1
+    #     contours += contours1
 
         # plt.imshow(one_cl_mask)
         # plt.show()
 
     # canny_output = cv.Canny(mask, 0, 1)
-    # # Find contours
+    # Find contours
     # contours, hierarchy = cv.findContours(canny_output, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # print(hierarchy)
     # print()
     # print(contours)

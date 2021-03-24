@@ -10,6 +10,10 @@ def get_centers(cntrs):
 
         for cntr in cntrs:
             M = cv.moments(cntr)
+            # assert M['m00'] != 0
+            if M['m00'] == 0:
+                print(cntr)
+
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
             centers.append([cX, cY])
@@ -17,6 +21,7 @@ def get_centers(cntrs):
        
     else:
         M = cv.moments(cntrs)
+        # assert M['m00'] != 0
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         centers = [cX, cY]
@@ -36,7 +41,7 @@ def find_nearest_to_center_cntr(cntrs, imsize):
     centers = get_centers(cntrs)
     dist, nearest = find_nearest(centers, im_center)
 
-    if dist > 200:
+    if dist > 100:
         return None
 
     return cntrs[nearest]
