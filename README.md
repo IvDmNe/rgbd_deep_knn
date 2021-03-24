@@ -7,7 +7,7 @@
 ## Run
 In different terminals:
 
-- Run realsense-ros connection
+- Run RealSense-ROS connection
   - roslaunch realsense2_camera rs_aligned_depth.launch tf_prefix:=measured/camera\
 - Run segmentation bt background substruction
   - python back_subs.py\
