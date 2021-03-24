@@ -1,4 +1,5 @@
 ## Requirements
+Was tested on:
 - Pytorch
 - ROS melodic
 - cv bridge for ROS
