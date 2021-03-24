@@ -8,7 +8,7 @@ from utils.vis import visualize_segmentation, get_rects, get_rotated_rois
 from utils.augment import convert_to_tensor
 from models.feature_extractor import feature_extractor
 import os
-from models.knn_classifier import knn_torch
+from models.knn import knn_torch
 from utils.utils import *
 import torchvision
 import time
@@ -116,8 +116,18 @@ class classifier:
         os.makedirs(f'{self.save_dir}/{class_name}', exist_ok=True)
         rgb_file = f'{self.save_dir}/{class_name}/rgb_{timestamp}.png'
         depth_file = f'{self.save_dir}/{class_name}/depth_{timestamp}.png'
+        
         cv.imwrite(rgb_file, center_rgb_roi)
         cv.imwrite(depth_file, center_depth_roi)
+        os.makedirs(f'{self.save_dir}/{class_name}/raw_images', exist_ok=True)
+        rgb_raw_file = f'{self.save_dir}/{class_name}/raw_images/rgb_{timestamp}.png'
+        depth_raw_file = f'{self.save_dir}/{class_name}/raw_images/depth_{timestamp}.png'
+        mask_file = f'{self.save_dir}/{class_name}/raw_images/mask_{timestamp}.png'
+
+        cv.imwrite(rgb_raw_file, rgb)
+        cv.imwrite(depth_raw_file, depth)
+        cv.imwrite(mask_file, mask)
+
 
         print(rgb_file)
         print(depth_file)
