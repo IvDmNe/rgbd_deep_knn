@@ -30,12 +30,12 @@ from std_msgs.msg import String
 
 from cv_bridge import CvBridge, CvBridgeError
 
-from models.knn_classifier import knn_torch
-from models.feature_extractor import feature_extractor
+# from models.knn_classifier import knn_torch
+# from models.feature_extractor import feature_extractor
 from utils.vis import get_rotated_rois
 from models.classifier import classifier
 from matplotlib import pyplot as plt
-import pybgs as bgs
+# import pybgs as bgs
 
 lock = threading.Lock()
 
