@@ -5,7 +5,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from utils.vis import visualize_segmentation, get_rects, get_rotated_rois
-from utils.augment import convert_to_tensor
+from utils.augment import convert_to_tensor, SquarePad
 from models.feature_extractor import feature_extractor
 import os
 from models.knn import knn_torch
@@ -13,6 +13,7 @@ from utils.utils import *
 import torchvision
 import time
 from tqdm import tqdm
+
 
 
 class classifier:
@@ -49,10 +50,15 @@ class classifier:
     def save_deep_features(self):
 
         files = []
-        for root, dirs, fs in os.walk(self.save_dir + '/' + self.train_cl):
-            if fs:
-                for f in fs:
-                    files.append(root + '/' + f)
+
+        for d in os.listdir(self.save_dir):
+            for f in os.listdir(self.save_dir + '/' + d):
+                files.append(self.save_dir + '/' + d + '/' + f)
+
+        # for root, dirs, fs in os.walk(self.save_dir + '/' + self.train_cl):
+        #     if fs:
+        #         for f in fs:
+        #             files.append(root + '/' + f)
         rgb_files = []
         depth_files = []
         for f in files:
@@ -111,12 +117,15 @@ class classifier:
         center_rgb_roi = rgb_rois[center_index]
         center_depth_roi = depth_rois[center_index]
 
+        # center_rgb_roi = SquarePad(center_rgb_roi)
+        # center_depth_roi = SquarePad(center_depth_roi)
+
         timestamp = time.time()
         print('')
         os.makedirs(f'{self.save_dir}/{class_name}', exist_ok=True)
         rgb_file = f'{self.save_dir}/{class_name}/rgb_{timestamp}.png'
         depth_file = f'{self.save_dir}/{class_name}/depth_{timestamp}.png'
-        
+    
         cv.imwrite(rgb_file, center_rgb_roi)
         cv.imwrite(depth_file, center_depth_roi)
         os.makedirs(f'{self.save_dir}/{class_name}/raw_images', exist_ok=True)
@@ -132,9 +141,6 @@ class classifier:
         print(rgb_file)
         print(depth_file)
         return
-    
-        
-
 
 
     def process_rgbd(self, rgb_im, depth_im, mask):
@@ -168,13 +174,14 @@ class classifier:
                 rgb_rois = rgb_rois.cuda()
                 depth_rois = depth_rois.cuda()
 
+            # print(print(next(self.extractor.parameters()).device)
             deep_rgb_features = self.extractor(rgb_rois)
-            deep_depth_features = self.extractor(depth_rois)
+            # deep_depth_features = self.extractor(depth_rois)
 
 
             if len(deep_rgb_features.shape) == 1:
                 deep_rgb_features = deep_rgb_features.unsqueeze(0)
-                deep_depth_features = deep_depth_features.unsqueeze(0)
+                # deep_depth_features = deep_depth_features.unsqueeze(0)
 
             # deep_features = torch.cat([deep_rgb_features, deep_depth_features], dim=1)
             deep_features = deep_rgb_features

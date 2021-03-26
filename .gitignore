@@ -1,2 +1,3 @@
 out_images
-save_images
+save_images/*
+output_images/*

@@ -25,7 +25,7 @@ class knn_torch:
 
         # print(type(self.x_data))
         # print(type(self.y_data))
-        torch.save({'x': self.x_data,
+        torch.save({'x': self.x_data.detach().cpu(),
                     'y': self.y_data}, self.save_file)
 
     def classify(self, x):

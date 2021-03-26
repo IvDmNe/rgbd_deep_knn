@@ -48,7 +48,6 @@ class ImageListener:
 
         self.background = None
 
-        # self.back_sub = bgs.SuBSENSE()
         self.back_sub = cv2.createBackgroundSubtractorMOG2(detectShadows=False, varThreshold=100, history=1)
 
 
@@ -64,7 +63,7 @@ class ImageListener:
        
         # initialize a node
         rospy.init_node("background_subs")
-        self.label_pub = rospy.Publisher('/seg_image', Image, queue_size=10)
+        self.label_pub = rospy.Publisher('/seg_image', Image, queue_size=1)
 
 
         self.base_frame = 'measured/base_link'
@@ -152,70 +151,13 @@ class ImageListener:
         self.label_pub.publish(label_msg)
 
 
-             
-
-
-
-        # # 
-        # bgr image
-        # im = im_color.astype(np.float32)
-        # im_tensor = torch.from_numpy(im) / 255.0
-        # pixel_mean = torch.tensor(cfg.PIXEL_MEANS / 255.0).float()
-        # im_tensor -= pixel_mean
-        # image_blob = im_tensor.permute(2, 0, 1)
-        # sample = {'image_color': image_blob.unsqueeze(0)}
-
-        # if cfg.INPUT == 'DEPTH' or cfg.INPUT == 'RGBD':
-        #     height = im_color.shape[0]
-        #     width = im_color.shape[1]
-        #     xyz_img = compute_xyz(depth_img, self.fx, self.fy, self.px, self.py, height, width)
-        #     depth_blob = torch.from_numpy(xyz_img).permute(2, 0, 1)
-        #     sample['depth'] = depth_blob.unsqueeze(0)
-
-
-
-
-        # out_label, out_label_refined = test_sample(sample, self.network, self.network_crop)
-
-        # # publish segmentation mask
-        # label = out_label[0].cpu().numpy()
-        # label_msg = self.cv_bridge.cv2_to_imgmsg(label.astype(np.uint8))
-        # label_msg.header.stamp = rgb_frame_stamp
-        # label_msg.header.frame_id = rgb_frame_id
-        # label_msg.encoding = 'mono8'
-        # self.label_pub.publish(label_msg)
-
-        # num_object = len(np.unique(label)) - 1
-        # print('%d objects' % (num_object))
-
-        # if out_label_refined is not None:
-        #     label_refined = out_label_refined[0].cpu().numpy()
-        #     label_msg_refined = self.cv_bridge.cv2_to_imgmsg(label_refined.astype(np.uint8))
-        #     label_msg_refined.header.stamp = rgb_frame_stamp
-        #     label_msg_refined.header.frame_id = rgb_frame_id
-        #     label_msg_refined.encoding = 'mono8'
-        #     self.label_refined_pub.publish(label_msg_refined)
-
-        # # publish segmentation images
-        # im_label = visualize_segmentation(im_color[:, :, (2, 1, 0)], label, return_rgb=True)
-        # rgb_msg = self.cv_bridge.cv2_to_imgmsg(im_label, 'rgb8')
-        # rgb_msg.header.stamp = rgb_frame_stamp
-        # rgb_msg.header.frame_id = rgb_frame_id
-        # self.image_pub.publish(rgb_msg)
-
-        # if out_label_refined is not None:
-        #     im_label_refined = visualize_segmentation(im_color[:, :, (2, 1, 0)], label_refined, return_rgb=True)
-        #     rgb_msg_refined = self.cv_bridge.cv2_to_imgmsg(im_label_refined, 'rgb8')
-        #     rgb_msg_refined.header.stamp = rgb_frame_stamp
-        #     rgb_msg_refined.header.frame_id = rgb_frame_id
-        #     self.image_refined_pub.publish(rgb_msg_refined)
 
 
 
 if __name__ == '__main__':
     
     listener = ImageListener()
-    rate = rospy.Rate(20)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
        listener.run_proc()
        rate.sleep()

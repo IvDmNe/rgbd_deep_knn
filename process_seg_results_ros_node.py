@@ -43,6 +43,8 @@ lock = threading.Lock()
 class ImageListener:
 
     def __init__(self):
+        
+        print('cuda is available:', torch.cuda.is_available())
 
 
         self.cv_bridge = CvBridge()
@@ -56,12 +58,13 @@ class ImageListener:
         self.mask_frame_stamp = None
         self.depth_frame_id = None
         self.depth_frame_stamp = None
+
+        self.save_next = False
         
 
 
-        self.classifier = classifier(knnClassifier=knn_torch('knn_data.pth'))
-
-        # self.classifier = classifier()
+        # self.classifier = classifier(knnClassifier=knn_torch('knn_data.pth'))
+        self.classifier = classifier()
 
         self.save_dir = 'save_images'
         os.makedirs(self.save_dir, exist_ok=True)
@@ -97,7 +100,8 @@ class ImageListener:
         elif command == 'inference':
             self.classifier.mode = 'inference'
         elif command == '':
-            self.run_proc_train()
+            self.save_next = True
+            # self.run_proc_train()
             # print('image saved')
             return
         else:
@@ -162,6 +166,7 @@ class ImageListener:
             if  time_diff.nsecs > 0.1 * 1e9:
                 return
 
+
             im_color = self.im.copy()
             depth_img = self.depth.copy()
             mask_img = self.mask.copy()
@@ -173,6 +178,7 @@ class ImageListener:
         if self.classifier.mode == 'inference':
             # if self.classifier.knn.y_data:
                 # print(set(self.classifier.knn.y_data))
+            print('nen')
     
             proc_return = self.classifier.process_rgbd(im_color, depth_img, mask_img)
             if proc_return:
@@ -194,8 +200,8 @@ class ImageListener:
         label_msg.encoding = 'bgr8'
         self.label_pub.publish(label_msg)
         end = time.time()
-        print(end - start)
-        print()
+        # print(end - start)
+        # print()
 
 
 
@@ -212,7 +218,7 @@ class ImageListener:
 
             time_diff = max(self.rgb_frame_stamp, self.depth_frame_stamp, self.mask_frame_stamp) - min(self.rgb_frame_stamp, self.depth_frame_stamp, self.mask_frame_stamp)
 
-            if  time_diff.nsecs > 0.1 * 1e9:
+            if  time_diff.nsecs > 1* 1e9:
                 print('too big time diff')
                 return
 
@@ -241,7 +247,12 @@ class ImageListener:
 if __name__ == '__main__':
 
     listener = ImageListener()
-    rate = rospy.Rate(10)
+    # rate = rospy.Rate(10)
     while not rospy.is_shutdown():
-       listener.run_proc()
-       rate.sleep()
+        listener.run_proc()
+        if listener.save_next:
+            listener.run_proc_train()
+            listener.save_next = False
+        # if listener.classifier.knn.y_data:
+            # print(set(listener.classifier.knn.y_data))
+    #    rate.sleep()
