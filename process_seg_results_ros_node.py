@@ -178,7 +178,6 @@ class ImageListener:
         if self.classifier.mode == 'inference':
             # if self.classifier.knn.y_data:
                 # print(set(self.classifier.knn.y_data))
-            print('nen')
     
             proc_return = self.classifier.process_rgbd(im_color, depth_img, mask_img)
             if proc_return:
@@ -239,6 +238,7 @@ class ImageListener:
         label_msg.header.frame_id = rgb_frame_id
         label_msg.encoding = 'mono8'
         self.label_pub.publish(label_msg)    
+        listener.save_next = False
 
 
 
@@ -249,10 +249,12 @@ if __name__ == '__main__':
     listener = ImageListener()
     # rate = rospy.Rate(10)
     while not rospy.is_shutdown():
-        listener.run_proc()
         if listener.save_next:
             listener.run_proc_train()
-            listener.save_next = False
+        else:
+            listener.run_proc()
+
+            
         # if listener.classifier.knn.y_data:
             # print(set(listener.classifier.knn.y_data))
     #    rate.sleep()
